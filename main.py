@@ -4,8 +4,13 @@ import re
 import nltk
 from nltk.corpus import stopwords
 
-
 nltk.download('all')
+
+
+def tokenize(text: str) -> list:
+    tokens = nltk.word_tokenize(text)
+    return [w for w in tokens if not w.lower() in stopwords.words('english')]
+
 
 def read_data():
     dirname = os.path.join(os.getcwd(), 'data/bbc-train')
@@ -38,8 +43,8 @@ def read_data():
     dircount = dircount[1:]
     dircount[0] = dircount[0] + 1
     print('Directorios leidos:', len(directories))
-    print("Imagenes en cada directorio", dircount)
-    print('suma Total de archivos en subdirs:', sum(dircount))
+    print("Textos en cada directorio", dircount)
+    print('Suma total de textos:', sum(dircount))
 
     labels = []
     indice = 0
@@ -57,12 +62,10 @@ def read_data():
         topics.append(name[len(name) - 1])
         indice = indice + 1
 
+    print("---Tokenizando Textos---")
+    tokenize_texts = [tokenize(text) for text in texts]
+    print("---Tokenizado Terminado---")
+
 
 if __name__ == "__main__":
     read_data()
-
-    sentence = """At eight o'clock on Thursday morning
-    ... Arthur didn't feel very good."""
-    tokens = nltk.word_tokenize(sentence)
-    filtered_sentence = [w for w in tokens if not w.lower() in stopwords.words('english')]
-    print(filtered_sentence)
