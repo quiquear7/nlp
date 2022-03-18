@@ -40,7 +40,7 @@ def read_data():
     dircount[0] = dircount[0] + 1
     print('Directorios leidos:', len(directories))
     print("Imagenes en cada directorio", dircount)
-    print('suma Total de imagenes en subdirs:', sum(dircount))
+    print('suma Total de archivos en subdirs:', sum(dircount))
 
     labels = []
     indice = 0
