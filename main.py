@@ -59,6 +59,11 @@ def read_data():
         indice = indice + 1
 
 
+def limpiar(documento):
+    lowerFinalClean = documento.lower()
+    return lowerFinalClean
+
+
 if __name__ == "__main__":
     read_data()
 
