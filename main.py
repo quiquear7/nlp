@@ -24,8 +24,7 @@ def read_data():
             if re.search("\.(txt)$", filename):
                 cant = cant + 1
                 filepath = os.path.join(root, filename)
-                textfile = open(filepath, 'r')
-                texts.append(textfile.read())
+                texts.append(open(filepath, 'r').read())
                 b = "Leyendo..." + str(cant)
                 print(b, end="\r")
                 if prev_root != root:
