@@ -5,7 +5,7 @@ import nltk
 from nltk.corpus import stopwords
 
 
-# nltk.download('all')
+nltk.download('all')
 
 def read_data():
     dirname = os.path.join(os.getcwd(), 'data/bbc-train')
@@ -61,6 +61,7 @@ def read_data():
 
 if __name__ == "__main__":
     read_data()
+
     sentence = """At eight o'clock on Thursday morning
     ... Arthur didn't feel very good."""
     tokens = nltk.word_tokenize(sentence)
