@@ -1,9 +1,17 @@
 import os
 import re
-
+from bs4 import BeautifulSoup
 import nltk
+from nltk.tokenize import WhitespaceTokenizer
 from nltk.corpus import stopwords
+from nltk.stem.snowball import SnowballStemmer
+from nltk.tokenize import word_tokenize
 
+##Palabras vacías en inglés
+stop_words = set(stopwords.words('english'))
+
+##Stemizador en inglés
+snow_stemmer = SnowballStemmer(language='english')
 
 nltk.download('all')
 
@@ -61,8 +69,28 @@ def read_data():
 
 def limpiar(documento):
     lowerFinalClean = documento.lower()
+
     return lowerFinalClean
 
+def tokenization(documentoLimpio):
+  #Tokenizamos despues de limpiar
+  tokenizado = WhitespaceTokenizer().tokenize(documentoLimpio)
+
+  return tokenizado
+
+def deleteStopWords(arrayTokens):
+  result = [t for t in arrayTokens if not t in stop_words]
+
+  return result
+
+def stemmer(tokensNoStopWords):
+    stem_words = []
+
+    for w in tokensNoStopWords:
+        x = snow_stemmer.stem(w)
+        stem_words.append(x)
+
+    return stem_words
 
 if __name__ == "__main__":
     read_data()
