@@ -64,7 +64,7 @@ def contadorTerminos(textos):
     wordcloud.generate(long_string)
     # Visualize the word cloud
     im = wordcloud.to_image()
-    im.save('data/imagenes', format="JPEG")
+    im.show()
 
 
 def lecturaTextos():
@@ -148,4 +148,4 @@ def lecturaTextosSinTag():
 if __name__ == "__main__":
     textos = lecturaTextosSinTag()
     #print(textos.values())
-    #contadorTerminos(textos)
+    contadorTerminos(textos)
