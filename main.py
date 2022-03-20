@@ -6,82 +6,43 @@ from nltk.tokenize import WhitespaceTokenizer
 from nltk.corpus import stopwords
 from nltk.stem.snowball import SnowballStemmer
 from nltk.tokenize import word_tokenize
+from wordcloud import WordCloud
+import gensim
+import gensim.corpora as corpora
 
-##Palabras vacías en inglés
+# Palabras vacías en inglés
+nltk.download('stopwords')
 stop_words = set(stopwords.words('english'))
 
-##Stemizador en inglés
+# Stemizador en inglés
 snow_stemmer = SnowballStemmer(language='english')
 
-nltk.download('all')
-
-def read_data():
-    dirname = os.path.join(os.getcwd(), 'data/bbc-train')
-    textpath = dirname + os.sep
-
-    texts = []
-    directories = []
-    dircount = []
-    prev_root = ''
-    cant = 0
-
-    print("leyendo archivos de ", textpath)
-
-    for root, dirnames, filenames in os.walk(textpath):
-        for filename in filenames:
-            if re.search("\.(txt)$", filename):
-                cant = cant + 1
-                filepath = os.path.join(root, filename)
-                textfile = open(filepath, 'r')
-                texts.append(textfile.read())
-                b = "Leyendo..." + str(cant)
-                print(b, end="\r")
-                if prev_root != root:
-                    print(root, cant)
-                    prev_root = root
-                    directories.append(root)
-                    dircount.append(cant)
-                    cant = 0
-    dircount.append(cant)
-
-    dircount = dircount[1:]
-    dircount[0] = dircount[0] + 1
-    print('Directorios leidos:', len(directories))
-    print("Imagenes en cada directorio", dircount)
-    print('suma Total de archivos en subdirs:', sum(dircount))
-
-    labels = []
-    indice = 0
-    for cantidad in dircount:
-        for i in range(cantidad):
-            labels.append(indice)
-        indice = indice + 1
-    print("Cantidad etiquetas creadas: ", len(labels))
-
-    topics = []
-    indice = 0
-    for directorio in directories:
-        name = directorio.split(os.sep)
-        print(indice, name[len(name) - 1])
-        topics.append(name[len(name) - 1])
-        indice = indice + 1
+# nltk.download('all')
 
 
+# Eliminar caracteres + minusculas
 def limpiar(documento):
-    lowerFinalClean = documento.lower()
+    # Eliminar caracteres especiales, solo nos quedamos con letras y numeros
+    sinCaracteresEsp = re.sub(r'[^\'a-zA-Z0-9\s]', '', documento)
+    ##Si hay más de dos espacios dejamos 1 espacio
+    sinEspacios = re.sub(r'[^\S]{2,}', ' ', sinCaracteresEsp)
+    lowerFinalClean = sinEspacios.lower()
 
     return lowerFinalClean
 
-def tokenization(documentoLimpio):
-  #Tokenizamos despues de limpiar
-  tokenizado = WhitespaceTokenizer().tokenize(documentoLimpio)
 
-  return tokenizado
+def tokenization(documentoLimpio):
+    # Tokenizamos despues de limpiar
+    tokenizado = WhitespaceTokenizer().tokenize(documentoLimpio)
+
+    return tokenizado
+
 
 def deleteStopWords(arrayTokens):
-  result = [t for t in arrayTokens if not t in stop_words]
+    result = [t for t in arrayTokens if not t in stop_words]
 
-  return result
+    return result
+
 
 def stemmer(tokensNoStopWords):
     stem_words = []
@@ -92,11 +53,99 @@ def stemmer(tokensNoStopWords):
 
     return stem_words
 
-if __name__ == "__main__":
-    read_data()
 
-    sentence = """At eight o'clock on Thursday morning
-    ... Arthur didn't feel very good."""
-    tokens = nltk.word_tokenize(sentence)
-    filtered_sentence = [w for w in tokens if not w.lower() in stopwords.words('english')]
-    print(filtered_sentence)
+def contadorTerminos(textos):
+    long_string = ''
+    for text in textos.values():
+        long_string = long_string + ','.join(text)
+    # Create a WordCloud object
+    wordcloud = WordCloud(background_color="white", max_words=5000, contour_width=3, contour_color='steelblue')
+    # Generate a word cloud
+    wordcloud.generate(long_string)
+    # Visualize the word cloud
+    im = wordcloud.to_image()
+    im.save('data/imagenes', format="JPEG")
+
+
+def lecturaTextos():
+    dirname = os.path.join(os.getcwd(), 'data/bbc-train')
+    textpath = dirname + os.sep
+    textos = {}
+
+    cant = 0
+
+    # Acceso a carpetas
+    for root, dirnames, filenames in os.walk(textpath):
+        last_root = os.path.basename(os.path.normpath(root))
+        print("Lectura de textos de " + last_root)
+        # Se crea un diccionario con clave 'tipo de texto' y tendrá como valor otro diccionario
+        globals()[last_root] = {}
+
+        # Acceso a archivos dentro de una carpeta
+        for filename in filenames:
+            if re.search("\.(txt)$", filename):
+                # Nombre + etiqueta
+                filename_etiq = last_root + '-' + filename
+                print('Leyendo el archivo ' + filename_etiq)
+                # Contador
+                cant = cant + 1
+                # Lectura archivo
+                filepath = os.path.join(root, filename)
+                f = open(filepath, 'r')
+                doc = f.read()
+                # Procesado de datos
+                limpio = limpiar(doc)
+                tokenizado = tokenization(limpio)
+                noStopWords = deleteStopWords(tokenizado)
+                stemizado = stemmer(noStopWords)
+                # Entrada de diciconario en su etiqueta
+                globals()[last_root][filename_etiq] = stemizado
+
+        # print(globals()[last_root].keys())
+        textos[last_root] = globals()[last_root]
+    # print(textos.keys())
+    # print(textos['sports'])
+
+def lecturaTextosSinTag():
+    dirname = os.path.join(os.getcwd(), 'data/bbc-train')
+    textpath = dirname + os.sep
+    textos = {}
+
+    cant = 0
+
+    # Acceso a carpetas
+    for root, dirnames, filenames in os.walk(textpath):
+        last_root = os.path.basename(os.path.normpath(root))
+        print("Lectura de textos de " + last_root)
+
+        # Acceso a archivos dentro de una carpeta
+        for filename in filenames:
+            if re.search("\.(txt)$", filename):
+                # Nombre + etiqueta
+                filename_etiq = last_root + '-' + filename
+                # print('Leyendo el archivo ' + filename_etiq)
+                # Contador
+                cant = cant + 1
+                # Lectura archivo
+                filepath = os.path.join(root, filename)
+                f = open(filepath, 'r')
+                doc = f.read()
+                # Procesado de datos
+                limpio = limpiar(doc)
+                tokenizado = tokenization(limpio)
+                noStopWords = deleteStopWords(tokenizado)
+                stemizado = stemmer(noStopWords)
+                # Entrada de diciconario en su etiqueta
+                textos[filename_etiq] = stemizado
+
+    print(textos.keys())
+    # print(textos['sports'])
+    print(len(textos))
+
+    return textos
+
+
+if __name__ == "__main__":
+    textos = lecturaTextosSinTag()
+    #print(textos.values())
+    #contadorTerminos(textos)
