@@ -24,6 +24,7 @@ snow_stemmer = SnowballStemmer(language='english')
 
 # nltk.download('all')
 
+# Etiquetas de los textos
 tags = ['business', 'entertainment', 'politics', 'sports', 'tech']
 
 
@@ -38,6 +39,7 @@ def limpiar(documento):
     return lowerFinalClean
 
 
+# Tokenizacion
 def tokenization(documentoLimpio):
     # Tokenizamos despues de limpiar
     tokenizado = WhitespaceTokenizer().tokenize(documentoLimpio)
@@ -45,12 +47,14 @@ def tokenization(documentoLimpio):
     return tokenizado
 
 
+# Eliminación de palabras vacías
 def deleteStopWords(arrayTokens):
     result = [t for t in arrayTokens if not t in stop_words]
 
     return result
 
 
+# Stemización
 def stemmer(tokensNoStopWords):
     stem_words = []
 
@@ -61,6 +65,7 @@ def stemmer(tokensNoStopWords):
     return stem_words
 
 
+# Sacar imagen de las palabras mas usadas a nivel global
 def graficoTerminosGlobal(textos):
     print('Funcion graficoTerminosGlobal')
     long_string = ''
@@ -75,6 +80,7 @@ def graficoTerminosGlobal(textos):
     im.show()
 
 
+# Sacar imagen de las palabras mas usadas a de etiqueta
 def graficoTerminosTag(textos):
     print('Funcion graficoTerminosTag')
     for tag in tags:
@@ -92,6 +98,7 @@ def graficoTerminosTag(textos):
         im.show()
 
 
+# Método que pasa el diccionario de textos a lista de strings
 def diccAListString(textos):
     print('Funcion diccAListString')
     textosStr = []
@@ -101,38 +108,43 @@ def diccAListString(textos):
     return textosStr
 
 
+# Método que consigue la amtriz tfxidf
 def matrizTFxIDF(x_counts):
     print('Funcion matrizTFxIDF')
     # print(textosStr)
     tfidf_transformer = TfidfTransformer()
     matriz_tfidf = tfidf_transformer.fit_transform(x_counts)
+    print('Tamaño Matriz TfxIDF:')
     print(numpy.shape(matriz_tfidf))
     return matriz_tfidf
 
-
+# Método que consigue el x_counts y la lista de términos usados
 def contadorTerminos(textosstr):
     print('Funcion contadorTerminos')
+    # Crea el vector que cuenta la repetición de términos
     count_vect = CountVectorizer(stop_words=stopwords.words('english'), lowercase=True)
     x_counts = count_vect.fit_transform(textosstr)
     print(x_counts.todense())
+    # A partir de él podemos conseguir la lista de todas las palabras usadas
     feature_names = count_vect.get_feature_names_out()
     print(feature_names)
     print('Hay ' + str(len(count_vect.get_feature_names_out())) + ' términos')
+    # x_counts será usado en el main para invocar a matrizTFxIDF y feature_names en globalLDA para poder ver las palbaras más usadas por agrupación
     return x_counts, feature_names
 
-
+# Modelo LDA con n agrupaciones
 def modelarLDA(n):
     print('Funcion modelar')
     lda = LDA(n_components=n)
     return lda
 
-
+# Calcula la semejanza con cada agrupación a partir del modelo y la matriz tfxidf
 def probaLDA(lda, matriz_tfxidf):
     print('Funcion probalDA')
     lda_array = lda.fit_transform(matriz_tfxidf)
     return lda_array
 
-
+# Cuenta cuantos textos hay en cada agrupación seleccionando en cada texto el grupo con mayor porcentaje
 def recuentoLDA(probabilidades):
     print('Funcion recuento')
     cero = 0
@@ -158,19 +170,20 @@ def recuentoLDA(probabilidades):
             igual = igual + 1
 
     print("Del grupo 0 hay " + str(cero) + ' textos,\n del grupo 1 hay ' +
-            str(uno) + ' textos,\n del grupo 2 hay ' + str(dos) + ' textos,\n del grupo 3 hay ' +
-            str(tres) + ' textos\n y iguales ' + str(igual))
+          str(uno) + ' textos,\n del grupo 2 hay ' + str(dos) + ' textos,\n del grupo 3 hay ' +
+          str(tres) + ' textos\n y iguales ' + str(igual))
 
-
+# Consigue las 5 palabras más repetidas de cada agrupación
 def palabrasClaveLDA(lda, feature_names):
     print('Funcion palabrasClaveLDA')
     feature_names_list = feature_names.tolist()
     components = [lda.components_[i] for i in range(len(lda.components_))]
-    important_words = [sorted(feature_names_list, key=lambda x: components[j][feature_names_list.index(x)], reverse=True)[:3] for
-                       j in range(len(components))]
+    important_words = [
+        sorted(feature_names_list, key=lambda x: components[j][feature_names_list.index(x)], reverse=True)[:5] for
+        j in range(len(components))]
     print(important_words)
 
-
+# Ejecuta todas las funciones para modelar el LDA y conseguir resultados
 def globalLDA(n, matriz_tfxidf):
     print('Funcion globalLDA')
     lda = modelarLDA(n)
@@ -179,7 +192,7 @@ def globalLDA(n, matriz_tfxidf):
     feature_names = contadorTerminos(textosStr)[1]
     palabrasClaveLDA(lda, feature_names)
 
-
+# Lectura y estructuración del data con etiquetas
 def lecturaTextos():
     print('Funcion lecturaTextos')
     dirname = os.path.join(os.getcwd(), 'data/bbc-train')
@@ -218,7 +231,7 @@ def lecturaTextos():
         # print(globals()[last_root].keys())
         textos[last_root] = globals()[last_root]
 
-
+# Lectura y estructuración del data sin etiquetas
 def lecturaTextosSinTag():
     print('Funcion lecturaTextosSinTag')
     dirname = os.path.join(os.getcwd(), 'data/bbc-train')
