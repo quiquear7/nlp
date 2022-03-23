@@ -1,19 +1,15 @@
 import os
 import re
-
-import numpy
 import numpy as np
-from bs4 import BeautifulSoup
+from num2words import num2words
 import nltk
 from nltk.tokenize import WhitespaceTokenizer
 from nltk.corpus import stopwords
 from nltk.stem.snowball import SnowballStemmer
-from nltk.tokenize import word_tokenize
 from wordcloud import WordCloud
-import gensim
-import gensim.corpora as corpora
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.decomposition import LatentDirichletAllocation as LDA
+from sklearn.decomposition import TruncatedSVD
 
 # Palabras vacías en inglés
 nltk.download('stopwords')
@@ -26,6 +22,9 @@ snow_stemmer = SnowballStemmer(language='english')
 
 # Etiquetas de los textos
 tags = ['business', 'entertainment', 'politics', 'sports', 'tech']
+
+
+# ------------------ Preprocesado ------------------
 
 
 # Eliminar caracteres + minusculas
@@ -65,6 +64,9 @@ def stemmer(tokensNoStopWords):
     return stem_words
 
 
+# ------------------ Gráficos term frequency ------------------
+
+
 # Sacar imagen de las palabras mas usadas a nivel global
 def graficoTerminosGlobal(textos):
     print('Funcion graficoTerminosGlobal')
@@ -98,6 +100,9 @@ def graficoTerminosTag(textos):
         im.show()
 
 
+# ------------------ Preparación modelados ------------------
+
+
 # Método que pasa el diccionario de textos a lista de strings
 def diccAListString(textos):
     print('Funcion diccAListString')
@@ -115,8 +120,9 @@ def matrizTFxIDF(x_counts):
     tfidf_transformer = TfidfTransformer()
     matriz_tfidf = tfidf_transformer.fit_transform(x_counts)
     print('Tamaño Matriz TfxIDF:')
-    print(numpy.shape(matriz_tfidf))
+    print(np.shape(matriz_tfidf))
     return matriz_tfidf
+
 
 # Método que consigue el x_counts y la lista de términos usados
 def contadorTerminos(textosstr):
@@ -132,11 +138,16 @@ def contadorTerminos(textosstr):
     # x_counts será usado en el main para invocar a matrizTFxIDF y feature_names en globalLDA para poder ver las palbaras más usadas por agrupación
     return x_counts, feature_names
 
+
+# ------------------ LDA ------------------
+
+
 # Modelo LDA con n agrupaciones
 def modelarLDA(n):
-    print('Funcion modelar')
+    print('Funcion modelarLDA')
     lda = LDA(n_components=n)
     return lda
+
 
 # Calcula la semejanza con cada agrupación a partir del modelo y la matriz tfxidf
 def probaLDA(lda, matriz_tfxidf):
@@ -144,34 +155,30 @@ def probaLDA(lda, matriz_tfxidf):
     lda_array = lda.fit_transform(matriz_tfxidf)
     return lda_array
 
+
 # Cuenta cuantos textos hay en cada agrupación seleccionando en cada texto el grupo con mayor porcentaje
-def recuentoLDA(probabilidades):
-    print('Funcion recuento')
-    cero = 0
-    uno = 0
-    dos = 0
-    tres = 0
-    igual = 0
+def recuentoLDA(n, probabilidades):
+    print('Funcion recuentoLDA')
     print(probabilidades)
+    # Crear n variables
+    for i in range(n):
+        num = num2words(i)
+        globals()[num] = 0
+    # Contadores
     for p in probabilidades:
         p_list = p.tolist()
         tmp = max(p_list)
         index = p_list.index(tmp)
-        print(index)
-        if index == 0:
-            cero = cero + 1
-        elif index == 1:
-            uno = uno + 1
-        elif index == 2:
-            dos = dos + 1
-        elif index == 3:
-            tres = tres + 1
-        else:
-            igual = igual + 1
+        # print(index)
+        for i in range(n):
+            num = num2words(i)
+            if index == i:
+                globals()[num] = globals()[num] + 1
+    # Print de resultados
+    for i in range(n):
+        num = num2words(i)
+        print("Del grupo " + str(i) + " hay " + str(globals()[num]) + ' textos')
 
-    print("Del grupo 0 hay " + str(cero) + ' textos,\n del grupo 1 hay ' +
-          str(uno) + ' textos,\n del grupo 2 hay ' + str(dos) + ' textos,\n del grupo 3 hay ' +
-          str(tres) + ' textos\n y iguales ' + str(igual))
 
 # Consigue las 5 palabras más repetidas de cada agrupación
 def palabrasClaveLDA(lda, feature_names):
@@ -181,21 +188,92 @@ def palabrasClaveLDA(lda, feature_names):
     important_words = [
         sorted(feature_names_list, key=lambda x: components[j][feature_names_list.index(x)], reverse=True)[:5] for
         j in range(len(components))]
-    print(important_words)
+    print('Palabras clave:')
+    for i in important_words:
+        print('Topic ' + str(important_words.index(i)) + ': ' + str(i))
+
 
 # Ejecuta todas las funciones para modelar el LDA y conseguir resultados
 def globalLDA(n, matriz_tfxidf):
     print('Funcion globalLDA')
     lda = modelarLDA(n)
     probabilidades = probaLDA(lda, matriz_tfxidf)
-    recuentoLDA(probabilidades)
+    recuentoLDA(n, probabilidades)
     feature_names = contadorTerminos(textosStr)[1]
     palabrasClaveLDA(lda, feature_names)
+
+
+# ------------------ LSA ------------------
+
+
+# Modelo LSA con n agrupaciones
+def modelarLSA(n):
+    print('Funcion modelarLSA')
+    lsa = TruncatedSVD(n_components=n, algorithm='randomized', n_iter=10, random_state=42)
+    return lsa
+
+
+# Calcula la semejanza con cada agrupación a partir del modelo y la matriz tfxidf
+def probaLSA(lsa, matriz_tfxidf):
+    print('Funcion probalSA')
+    lsa_array = lsa.fit_transform(matriz_tfxidf)
+    return lsa_array
+
+
+# Cuenta cuantos textos hay en cada agrupación seleccionando en cada texto el grupo con mayor porcentaje
+def recuentoLSA(n, probabilidades):
+    print('Funcion recuentoLSA')
+    print(probabilidades)
+    # Crear n variables
+    for i in range(n):
+        num = num2words(i)
+        globals()[num] = 0
+    # Contadores
+    for p in probabilidades:
+        p_list = p.tolist()
+        tmp = max(p_list)
+        index = p_list.index(tmp)
+        # print(index)
+        for i in range(n):
+            num = num2words(i)
+            if index == i:
+                globals()[num] = globals()[num] + 1
+    # Print de resultados
+    for i in range(n):
+        num = num2words(i)
+        print("Del grupo " + str(i) + " hay " + str(globals()[num]) + ' textos')
+
+
+# Consigue las 5 palabras más repetidas de cada agrupación
+def palabrasClaveLSA(lsa, feature_names):
+    print('Funcion palabrasClaveLDA')
+    feature_names_list = feature_names.tolist()
+    components = [lsa.components_[i] for i in range(len(lsa.components_))]
+    important_words = [
+        sorted(feature_names_list, key=lambda x: components[j][feature_names_list.index(x)], reverse=True)[:5] for
+        j in range(len(components))]
+    print('Palabras clave:')
+    for i in important_words:
+        print('Topic ' + str(important_words.index(i)) + ': ' + str(i))
+
+
+# Ejecuta todas las funciones para modelar el LDA y conseguir resultados
+def globalLSA(n, matriz_tfxidf):
+    print('Funcion globalLSA')
+    lsa = modelarLSA(n)
+    probabilidades = probaLSA(lsa, matriz_tfxidf)
+    recuentoLSA(n, probabilidades)
+    feature_names = contadorTerminos(textosStr)[1]
+    palabrasClaveLDA(lsa, feature_names)
+
+
+# ------------------ Lecturas ------------------
+
 
 # Lectura y estructuración del data con etiquetas
 def lecturaTextos():
     print('Funcion lecturaTextos')
-    dirname = os.path.join(os.getcwd(), 'data/bbc-train')
+    dirname = os.path.join(os.getcwd(), 'data/bbc')
     textpath = dirname + os.sep
     textos = {}
 
@@ -231,10 +309,11 @@ def lecturaTextos():
         # print(globals()[last_root].keys())
         textos[last_root] = globals()[last_root]
 
+
 # Lectura y estructuración del data sin etiquetas
 def lecturaTextosSinTag():
     print('Funcion lecturaTextosSinTag')
-    dirname = os.path.join(os.getcwd(), 'data/bbc-train')
+    dirname = os.path.join(os.getcwd(), 'data/bbc')
     textpath = dirname + os.sep
     textos = {}
 
@@ -278,8 +357,9 @@ if __name__ == "__main__":
     # contadorTerminosGlobal(textos)
     # contadorTerminosTag(textos)
     textosStr = diccAListString(textos)
-    # print(matriz_tfxidf)
     x_counts = contadorTerminos(textosStr)[0]
     matriz_tfxidf = matrizTFxIDF(x_counts)
-    globalLDA(4, matriz_tfxidf)
-    print('globalLDA finished')
+    n = 5
+    globalLDA(n, matriz_tfxidf)
+    globalLSA(n, matriz_tfxidf)
+    print('globalLSA finished')
